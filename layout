@@ -1,0 +1,9 @@
+MEMORY
+{
+	PRG:  start =    $0, size =  $1000, fill=yes, fillval=$00;
+}
+
+SEGMENTS
+{
+	PRG:     load = PRG,  type = ro;
+}
