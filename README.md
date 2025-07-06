@@ -12,5 +12,8 @@ make_tas.js takes all the data and converts it to FCEUX tas inputs for each stag
 
 you can run 'make' or look at the Makefile to see how to run the build and generate the tas.
 
+Prerequities:
+You will need to have 96 coins, be sure to take a step to left before the ACE inputs start, and set up fireball shots so that memory location $8D is the value $94 and $8E is the value $A5
+
 Good luck!
 /threecreepio
