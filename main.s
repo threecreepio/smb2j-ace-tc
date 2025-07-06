@@ -1,60 +1,77 @@
-.include "inc.s"
-
 .segment "PRG"
 .org $0
 
-.res $50-*,$00
-: jsr $e1b2 ; vintwait
-  jsr $e9eb ; read joypad
-  lda $f5
-  ldx $6c
-  sta $200,x
-  inc $6c
+PPU_CTRL_REG1         = $2000
+PPU_CTRL_REG2         = $2001
+PPU_ADDRESS           = $2006
+PPU_DATA              = $2007
+SND_MASTERCTRL_REG    = $4015
+
+FDSBIOS_VINTWAIT      = $E1B2
+FDSBIOS_READPADS      = $E9EB
+READPADS_CTL1         = $F5
+READPADS_CTL2         = $F6
+
+TRAMP_LOCATION        = $50
+TRAMP_INDEX           = $6C
+
+EXEC_LOCATION         = $200
+EXEC_SRC_LO           = $10
+EXEC_SRC_HI           = $11
+EXEC_END              = $12
+
+.res TRAMP_LOCATION-*,$00
+: jsr FDSBIOS_VINTWAIT
+  jsr FDSBIOS_READPADS
+  ldx TRAMP_INDEX
+  lda READPADS_CTL1
+  sta EXEC_LOCATION,x
+  inc TRAMP_INDEX
   bpl :-
-  jmp $200
+  jmp EXEC_LOCATION
 
 
-.res $200-*,$00
+.res EXEC_LOCATION-*,$00
   lda #0
   tay
   sta PPU_CTRL_REG1
   sta PPU_CTRL_REG2
-  sta $4015
+  sta SND_MASTERCTRL_REG
   sta $10
   sta $11
 
   ; copy ZP
   ;lda #1
-  ;sta $12
+  ;sta EXEC_END
   ;jsr ramcpy
   
   ;; copy $300-$7FF
   lda #3
-  sta $11
+  sta EXEC_SRC_HI
   lda #8
-  sta $12
+  sta EXEC_END
   jsr ramcpy
 
   ; copy PRG
   lda #$60
-  sta $11
+  sta EXEC_SRC_HI
   lda #$E0
-  sta $12
+  sta EXEC_END
   jsr ramcpy
 
   ; copy PPU
   lda #0
-  sta $11
+  sta EXEC_SRC_HI
   lda #$20
-  sta $12
+  sta EXEC_END
 : jsr nextframe
-  lda $11
+  lda EXEC_SRC_HI
   sta PPU_ADDRESS
-  lda $10
+  lda EXEC_SRC_LO
   sta PPU_ADDRESS
-  lda $f5
+  lda READPADS_CTL1
   sta PPU_DATA
-  lda $f6
+  lda READPADS_CTL2
   sta PPU_DATA
   jsr advance
   bcc :-
@@ -63,29 +80,28 @@
 
 ramcpy:
 : jsr nextframe
-  lda $f5
-  sta ($10),y
+  lda READPADS_CTL1
+  sta (EXEC_SRC_LO),y
   iny
-  lda $f6
-  sta ($10),y
+  lda READPADS_CTL2
+  sta (EXEC_SRC_LO),y
   dey
   jsr advance
   bcc :-
   rts
 
 nextframe:
-  jsr $e1b2 ; vintwait
-  jmp $e9eb ; read joypad
+  jsr FDSBIOS_VINTWAIT
+  jmp FDSBIOS_READPADS
   
 advance:
   clc
-  inc $10
-  inc $10
+  inc EXEC_SRC_LO
+  inc EXEC_SRC_LO
   bne :+
-  inc $11
-  lda $11
-  cmp $12
+  inc EXEC_SRC_HI
+  lda EXEC_SRC_HI
+  cmp EXEC_END
 : rts
 
-.res $280-*,$00
-
+.res (EXEC_LOCATION+$80)-*,$EA
